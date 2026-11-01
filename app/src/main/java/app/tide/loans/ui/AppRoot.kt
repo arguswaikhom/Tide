@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.tide.loans.AppViewModel
 import app.tide.loans.ui.people.PeopleScreen
+import app.tide.loans.ui.person.PersonScreen
 import app.tide.loans.ui.theme.Tide
 
 @Composable
@@ -44,6 +45,25 @@ fun AppRoot(viewModel: AppViewModel) {
                 onSearch = { push(Screen.Search) },
                 onSettings = { push(Screen.Settings) },
             )
+            is Screen.Person -> {
+                val summary = state.summaries.find { it.person.id == screen.id }
+                if (summary == null) {
+                    Box(Modifier.fillMaxSize().background(Tide.Ground))
+                } else {
+                    PersonScreen(
+                        summary = summary,
+                        entries = state.entries.filter { it.personId == screen.id },
+                        defaultCurrency = state.defaultCurrency,
+                        onBack = { pop() },
+                        onSaveEntry = { id, direction, amount, note, at ->
+                            viewModel.saveEntry(id, screen.id, direction, amount, note, at)
+                        },
+                        onDeleteEntry = viewModel::deleteEntry,
+                        onSavePerson = { name, currency -> viewModel.updatePerson(screen.id, name, currency) },
+                        onDeletePerson = { viewModel.deletePerson(screen.id) },
+                    )
+                }
+            }
             else -> Box(Modifier.fillMaxSize().background(Tide.Ground), Alignment.Center) {
                 Text("Coming soon", color = Tide.Text)
             }

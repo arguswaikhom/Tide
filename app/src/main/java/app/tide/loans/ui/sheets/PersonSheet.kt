@@ -2,11 +2,14 @@ package app.tide.loans.ui.sheets
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,7 +33,12 @@ import app.tide.loans.ui.theme.Unbounded
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PersonSheet(initialName: String, onSave: (String) -> Unit, onDismiss: () -> Unit) {
+fun PersonSheet(
+    initialName: String,
+    onSave: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onDelete: (() -> Unit)? = null,
+) {
     var name by rememberSaveable { mutableStateOf(initialName) }
     val focus = remember { FocusRequester() }
     ModalBottomSheet(
@@ -51,6 +59,11 @@ fun PersonSheet(initialName: String, onSave: (String) -> Unit, onDismiss: () -> 
                 fieldModifier = Modifier.focusRequester(focus),
             )
             PillButton("Save", enabled = name.isNotBlank()) { onSave(name) }
+            if (onDelete != null) {
+                TextButton(onDelete, Modifier.fillMaxWidth()) {
+                    Text("Delete person", color = Tide.Orange, fontWeight = FontWeight.Bold)
+                }
+            }
             LaunchedEffect(Unit) { focus.requestFocus() }
         }
     }
