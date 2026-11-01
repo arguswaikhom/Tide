@@ -39,6 +39,7 @@ import app.tide.loans.AppViewModel
 import app.tide.loans.ui.people.PeopleScreen
 import app.tide.loans.ui.person.PersonScreen
 import app.tide.loans.ui.theme.Tide
+import kotlinx.coroutines.delay
 
 private const val JAR_MS = 450
 
@@ -130,7 +131,12 @@ fun AppRoot(viewModel: AppViewModel) {
                     Text("Coming soon", color = Tide.Text)
                 }
             }
-            if (transition.isRunning) TapBlocker()
+            var settled by remember { mutableStateOf(reducedMotion) }
+            LaunchedEffect(Unit) {
+                delay(JAR_MS.toLong())
+                settled = true
+            }
+            if (!settled || transition.isRunning) TapBlocker()
         }
     }
 }
