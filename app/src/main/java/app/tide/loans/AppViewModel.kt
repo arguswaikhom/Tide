@@ -19,6 +19,7 @@ import java.util.Locale
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -38,6 +39,12 @@ class AppViewModel(private val dao: LoanDao, locale: Locale) : ViewModel() {
             val summaries = summarize(people, entries, currency)
             AppState(true, people, entries, summaries, totals(summaries), currency)
         }.stateIn(viewModelScope, SharingStarted.Eagerly, AppState())
+
+    init {
+        viewModelScope.launch {
+            if (dao.settings().first() == null) dao.save(Settings(defaultCurrency = defaultCurrencyFor(locale)))
+        }
+    }
 
     fun addPerson(name: String) {
         val trimmed = name.trim()

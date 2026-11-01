@@ -183,7 +183,7 @@ assertEquals(personLevel(300000), personLevel(-300000), 0f)
 - A person with no override uses the default. Changing the default changes their currency and leaves `balanceMinor` the same.
 - An override wins over the default.
 - `jarLevel` compares only within a currency: Sam at 4,000 INR and Tom at 300 USD each get `0.52f`.
-- Order is by `lastActivity` descending, where `lastActivity = max(createdAt, latest occurredAt)`. A person created just now sorts above someone with an older entry.
+- Order is by `lastActivity` descending, where `lastActivity` is the latest `occurredAt`, or `createdAt` for someone with no entries. A person created just now sorts above someone with an older entry.
 - Back-dating an entry changes the order to match.
 - A person with no entries has balance 0 and level 0, and stays in the list.
 

@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -48,12 +49,12 @@ import androidx.compose.ui.unit.sp
 import app.tide.loans.data.Direction
 import app.tide.loans.data.Entry
 import app.tide.loans.domain.PersonSummary
-import app.tide.loans.domain.amountSp
 import app.tide.loans.domain.formatAmount
 import app.tide.loans.domain.formatWhen
 import app.tide.loans.domain.historyOrder
 import app.tide.loans.domain.interpolateMinor
 import app.tide.loans.domain.personLevel
+import app.tide.loans.ui.FitText
 import app.tide.loans.ui.PillButton
 import app.tide.loans.ui.liquid.Drop
 import app.tide.loans.ui.liquid.Liquid
@@ -236,19 +237,20 @@ private fun Balance(summary: PersonSummary, shownMinor: Long) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(
+        FitText(
             buildAnnotatedString {
                 append(amount)
                 withStyle(SpanStyle(fontFamily = Figtree, fontSize = 15.sp, color = Tide.Muted)) {
                     append(" " + summary.currency)
                 }
             },
-            color = if (balance == 0L) Tide.Text else liquidColor(balance),
-            fontFamily = Unbounded,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = amountSp(amount, 52, 24, 7).sp,
-            maxLines = 1,
-            softWrap = false,
+            style = TextStyle(
+                color = if (balance == 0L) Tide.Text else liquidColor(balance),
+                fontFamily = Unbounded,
+                fontWeight = FontWeight.SemiBold,
+            ),
+            baseSp = 52,
+            minSp = 20,
         )
         Text(
             when {

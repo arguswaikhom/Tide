@@ -132,4 +132,19 @@ class BalancesTest {
         assertEquals(-50L, interpolateMinor(50, -150, 0.5f))
         assertEquals(99_999_999_999_999L, interpolateMinor(5, 99_999_999_999_999L, 1f))
     }
+
+    @Test fun entriesDecideOrderEvenWhenThePersonWasAddedLater() {
+        val people = listOf(person(1, createdAt = 2000), person(2, createdAt = 1000))
+        val entries = listOf(gave(100, at = 30, personId = 1), gave(100, at = 50, personId = 2))
+        val summaries = summarize(people, entries, "INR")
+        assertEquals(listOf(2L, 1L), summaries.map { it.person.id })
+        assertEquals(50L, summaries.first().lastActivity)
+    }
+
+    @Test fun fitPicksTheLargestSizeThatFits() {
+        val tenPerSp = { sp: Int -> sp * 10 }
+        assertEquals(20, fitSp(baseSp = 20, minSp = 10, maxWidth = 300, widthAt = tenPerSp))
+        assertEquals(15, fitSp(baseSp = 20, minSp = 10, maxWidth = 150, widthAt = tenPerSp))
+        assertEquals(10, fitSp(baseSp = 20, minSp = 10, maxWidth = 50, widthAt = tenPerSp))
+    }
 }

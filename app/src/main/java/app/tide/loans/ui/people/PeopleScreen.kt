@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,6 +54,7 @@ import app.tide.loans.domain.PersonSummary
 import app.tide.loans.domain.amountSp
 import app.tide.loans.domain.formatAmount
 import app.tide.loans.domain.formatTotals
+import app.tide.loans.ui.FitText
 import app.tide.loans.ui.liquid.Liquid
 import app.tide.loans.ui.sheets.PersonSheet
 import app.tide.loans.ui.theme.Figtree
@@ -165,19 +167,16 @@ private fun Jar(summary: PersonSummary, index: Int, fillFromEmpty: Boolean, modi
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
+            FitText(
                 buildAnnotatedString {
                     append(amount)
                     withStyle(SpanStyle(fontFamily = Figtree, fontSize = 12.sp, color = Tide.Muted)) {
                         append(" " + summary.currency)
                     }
                 },
-                color = Tide.Text,
-                fontFamily = Unbounded,
-                fontWeight = FontWeight.Medium,
-                fontSize = amountSp(amount, 20, 11, 8).sp,
-                maxLines = 1,
-                softWrap = false,
+                style = TextStyle(color = Tide.Text, fontFamily = Unbounded, fontWeight = FontWeight.Medium),
+                baseSp = 20,
+                minSp = 9,
             )
             Text(tag, color = Tide.Muted, fontSize = 13.sp)
         }

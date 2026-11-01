@@ -29,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -76,6 +77,7 @@ fun AppRoot(viewModel: AppViewModel) {
     var stack by rememberSaveable(stateSaver = StackSaver) { mutableStateOf(listOf<Screen>(Screen.People)) }
     var jarsHaveFilled by remember { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
+    val scroll = rememberSaveableStateHolder()
     val reducedMotion = rememberReducedMotion()
     val push = { screen: Screen -> if (stack.last() != screen) stack = stack + screen }
     val pop = { stack = stack.dropLast(1) }
@@ -99,18 +101,20 @@ fun AppRoot(viewModel: AppViewModel) {
             label = "screen",
         ) { screen ->
             when (screen) {
-                Screen.People -> PeopleScreen(
-                    state = state,
-                    onOpenPerson = { if (stack.last() == Screen.People) push(Screen.Person(it)) },
-                    onAddPerson = viewModel::addPerson,
-                    onSearch = {
-                        searchQuery = ""
-                        push(Screen.Search)
-                    },
-                    onSettings = { push(Screen.Settings) },
-                    fillFromEmpty = !jarsHaveFilled,
-                    jarModifier = { jarBounds(it, this@AnimatedContent, reducedMotion) },
-                )
+                Screen.People -> scroll.SaveableStateProvider("people") {
+                    PeopleScreen(
+                        state = state,
+                        onOpenPerson = { if (stack.last() == Screen.People) push(Screen.Person(it)) },
+                        onAddPerson = viewModel::addPerson,
+                        onSearch = {
+                            searchQuery = ""
+                            push(Screen.Search)
+                        },
+                        onSettings = { push(Screen.Settings) },
+                        fillFromEmpty = !jarsHaveFilled,
+                        jarModifier = { jarBounds(it, this@AnimatedContent, reducedMotion) },
+                    )
+                }
                 is Screen.Person -> {
                     val summary = state.summaries.find { it.person.id == screen.id }
                     if (summary == null) {
@@ -132,15 +136,17 @@ fun AppRoot(viewModel: AppViewModel) {
                     }
                 }
                 Screen.Settings -> SettingsScreen(state.defaultCurrency, viewModel::setDefaultCurrency) { pop() }
-                Screen.Search -> SearchScreen(
-                    query = searchQuery,
-                    onQueryChange = { searchQuery = it },
-                    people = state.people,
-                    entries = state.entries,
-                    defaultCurrency = state.defaultCurrency,
-                    onOpenPerson = { push(Screen.Person(it)) },
-                    onBack = { pop() },
-                )
+                Screen.Search -> scroll.SaveableStateProvider("search") {
+                    SearchScreen(
+                        query = searchQuery,
+                        onQueryChange = { searchQuery = it },
+                        people = state.people,
+                        entries = state.entries,
+                        defaultCurrency = state.defaultCurrency,
+                        onOpenPerson = { push(Screen.Person(it)) },
+                        onBack = { pop() },
+                    )
+                }
             }
             var settled by remember { mutableStateOf(reducedMotion) }
             LaunchedEffect(Unit) {

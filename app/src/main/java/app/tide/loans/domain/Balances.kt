@@ -50,7 +50,7 @@ fun summarize(people: List<Person>, entries: List<Entry>, defaultCurrency: Strin
             currency = currency,
             balanceMinor = balance,
             jarLevel = jarLevel(balance, largest.getValue(currency)),
-            lastActivity = max(person.createdAt, byPerson[person.id].orEmpty().maxOfOrNull { it.occurredAt } ?: 0L),
+            lastActivity = byPerson[person.id]?.maxOfOrNull { it.occurredAt } ?: person.createdAt,
         )
     }.sortedByDescending { it.lastActivity }
 }
@@ -70,6 +70,10 @@ fun historyOrder(entries: List<Entry>): List<Entry> =
 /** The balance to show part way through a count, kept in Long so large amounts stay exact. */
 fun interpolateMinor(from: Long, to: Long, progress: Float): Long =
     if (progress >= 1f) to else from + ((to - from) * progress.toDouble()).roundToLong()
+
+/** The largest size from [baseSp] down to [minSp] whose measured width fits [maxWidth]. */
+fun fitSp(baseSp: Int, minSp: Int, maxWidth: Int, widthAt: (Int) -> Int): Int =
+    (baseSp downTo minSp).firstOrNull { widthAt(it) <= maxWidth } ?: minSp
 
 /** Font size that keeps [text] on one line: [baseSp] up to [fitChars] characters, then shrinking. */
 fun amountSp(text: String, baseSp: Int, minSp: Int, fitChars: Int): Int =
