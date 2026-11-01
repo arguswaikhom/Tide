@@ -23,7 +23,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,13 +30,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.tide.loans.AppViewModel
 import app.tide.loans.ui.people.PeopleScreen
 import app.tide.loans.ui.person.PersonScreen
+import app.tide.loans.ui.search.SearchScreen
 import app.tide.loans.ui.settings.SettingsScreen
 import app.tide.loans.ui.theme.Tide
 import kotlinx.coroutines.delay
@@ -76,6 +75,7 @@ fun AppRoot(viewModel: AppViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var stack by rememberSaveable(stateSaver = StackSaver) { mutableStateOf(listOf<Screen>(Screen.People)) }
     var jarsHaveFilled by remember { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     val reducedMotion = rememberReducedMotion()
     val push = { screen: Screen -> if (stack.last() != screen) stack = stack + screen }
     val pop = { stack = stack.dropLast(1) }
@@ -103,7 +103,10 @@ fun AppRoot(viewModel: AppViewModel) {
                     state = state,
                     onOpenPerson = { if (stack.last() == Screen.People) push(Screen.Person(it)) },
                     onAddPerson = viewModel::addPerson,
-                    onSearch = { push(Screen.Search) },
+                    onSearch = {
+                        searchQuery = ""
+                        push(Screen.Search)
+                    },
                     onSettings = { push(Screen.Settings) },
                     fillFromEmpty = !jarsHaveFilled,
                     jarModifier = { jarBounds(it, this@AnimatedContent, reducedMotion) },
@@ -129,9 +132,15 @@ fun AppRoot(viewModel: AppViewModel) {
                     }
                 }
                 Screen.Settings -> SettingsScreen(state.defaultCurrency, viewModel::setDefaultCurrency) { pop() }
-                else -> Box(Modifier.fillMaxSize().background(Tide.Ground), Alignment.Center) {
-                    Text("Coming soon", color = Tide.Text)
-                }
+                Screen.Search -> SearchScreen(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    people = state.people,
+                    entries = state.entries,
+                    defaultCurrency = state.defaultCurrency,
+                    onOpenPerson = { push(Screen.Person(it)) },
+                    onBack = { pop() },
+                )
             }
             var settled by remember { mutableStateOf(reducedMotion) }
             LaunchedEffect(Unit) {
