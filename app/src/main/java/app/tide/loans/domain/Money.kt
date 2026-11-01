@@ -1,5 +1,6 @@
 package app.tide.loans.domain
 
+import java.util.Currency
 import java.util.Locale
 import kotlin.math.abs
 
@@ -32,3 +33,11 @@ fun formatTotals(byCurrency: Map<String, Long>): String =
     else byCurrency.toSortedMap().entries.joinToString(" · ") { "${formatAmount(it.value)} ${it.key}" }
 
 fun normalizeNote(text: String): String? = text.trim().ifEmpty { null }
+
+data class CurrencyOption(val code: String, val name: String)
+
+fun currencyOptions(query: String): List<CurrencyOption> =
+    Currency.getAvailableCurrencies()
+        .map { CurrencyOption(it.currencyCode, it.getDisplayName(Locale.ENGLISH)) }
+        .filter { it.code.contains(query, ignoreCase = true) || it.name.contains(query, ignoreCase = true) }
+        .sortedBy { it.code }

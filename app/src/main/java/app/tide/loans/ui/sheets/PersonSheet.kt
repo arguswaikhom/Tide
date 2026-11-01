@@ -1,5 +1,6 @@
 package app.tide.loans.ui.sheets
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.tide.loans.ui.PillButton
 import app.tide.loans.ui.UnderlineField
+import app.tide.loans.ui.settings.CurrencyPicker
 import app.tide.loans.ui.theme.Tide
 import app.tide.loans.ui.theme.Unbounded
 
@@ -35,11 +38,15 @@ import app.tide.loans.ui.theme.Unbounded
 @Composable
 fun PersonSheet(
     initialName: String,
-    onSave: (String) -> Unit,
+    onSave: (name: String, currencyOverride: String?) -> Unit,
     onDismiss: () -> Unit,
     onDelete: (() -> Unit)? = null,
+    initialCurrency: String? = null,
+    defaultCurrency: String? = null,
 ) {
     var name by rememberSaveable { mutableStateOf(initialName) }
+    var currency by rememberSaveable { mutableStateOf(initialCurrency) }
+    var pickingCurrency by rememberSaveable { mutableStateOf(false) }
     val focus = remember { FocusRequester() }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -58,7 +65,22 @@ fun PersonSheet(
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 fieldModifier = Modifier.focusRequester(focus),
             )
-            PillButton("Save", enabled = name.isNotBlank()) { onSave(name) }
+            if (defaultCurrency != null) {
+                Column(
+                    Modifier.fillMaxWidth().clickable { pickingCurrency = true },
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text("Currency", color = Tide.Muted, fontSize = 13.sp)
+                    Text(
+                        currency ?: "Default ($defaultCurrency)",
+                        color = Tide.Text,
+                        fontSize = 15.sp,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
+                    HorizontalDivider(thickness = 2.dp, color = Tide.Muted)
+                }
+            }
+            PillButton("Save", enabled = name.isNotBlank()) { onSave(name, currency) }
             if (onDelete != null) {
                 TextButton(onDelete, Modifier.fillMaxWidth()) {
                     Text("Delete person", color = Tide.Orange, fontWeight = FontWeight.Bold)
@@ -66,5 +88,17 @@ fun PersonSheet(
             }
             LaunchedEffect(Unit) { focus.requestFocus() }
         }
+    }
+    if (pickingCurrency && defaultCurrency != null) {
+        CurrencyPicker(
+            selected = currency,
+            allowDefault = true,
+            defaultCurrency = defaultCurrency,
+            onPick = {
+                currency = it
+                pickingCurrency = false
+            },
+            onDismiss = { pickingCurrency = false },
+        )
     }
 }

@@ -2,6 +2,7 @@ package app.tide.loans.domain
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MoneyTest {
@@ -37,5 +38,12 @@ class MoneyTest {
     @Test fun normalizesNotes() {
         assertNull(normalizeNote("   "))
         assertEquals("Cash", normalizeNote(" Cash "))
+    }
+
+    @Test fun listsAndFiltersCurrencies() {
+        assertTrue(currencyOptions("").any { it.code == "INR" })
+        assertEquals("USD", currencyOptions("usd").first().code)
+        assertTrue(currencyOptions("rupee").any { it.code == "INR" })
+        assertTrue(currencyOptions("zzzz").isEmpty())
     }
 }

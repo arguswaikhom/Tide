@@ -38,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.tide.loans.AppViewModel
 import app.tide.loans.ui.people.PeopleScreen
 import app.tide.loans.ui.person.PersonScreen
+import app.tide.loans.ui.settings.SettingsScreen
 import app.tide.loans.ui.theme.Tide
 import kotlinx.coroutines.delay
 
@@ -127,6 +128,7 @@ fun AppRoot(viewModel: AppViewModel) {
                         )
                     }
                 }
+                Screen.Settings -> SettingsScreen(state.defaultCurrency, viewModel::setDefaultCurrency) { pop() }
                 else -> Box(Modifier.fillMaxSize().background(Tide.Ground), Alignment.Center) {
                     Text("Coming soon", color = Tide.Text)
                 }

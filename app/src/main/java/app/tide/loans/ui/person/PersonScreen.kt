@@ -173,12 +173,14 @@ fun PersonScreen(
         )
         Modal.EditPerson -> PersonSheet(
             initialName = name,
-            onSave = {
-                onSavePerson(it, summary.person.currencyOverride)
+            onSave = { newName, currency ->
+                onSavePerson(newName, currency)
                 modal = null
             },
             onDismiss = { modal = null },
             onDelete = { modal = Modal.ConfirmDeletePerson },
+            initialCurrency = summary.person.currencyOverride,
+            defaultCurrency = defaultCurrency,
         )
         Modal.ConfirmDeletePerson -> ConfirmDialog(
             title = "Delete $name?",

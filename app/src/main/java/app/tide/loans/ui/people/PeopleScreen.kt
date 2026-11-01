@@ -105,8 +105,8 @@ fun PeopleScreen(
     if (adding) {
         PersonSheet(
             initialName = "",
-            onSave = {
-                onAddPerson(it)
+            onSave = { name, _ ->
+                onAddPerson(name)
                 adding = false
             },
             onDismiss = { adding = false },
