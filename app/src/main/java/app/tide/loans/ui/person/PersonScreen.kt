@@ -90,6 +90,7 @@ fun PersonScreen(
     onDeleteEntry: (Long) -> Unit,
     onSavePerson: (name: String, currencyOverride: String?) -> Unit,
     onDeletePerson: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var modal by remember { mutableStateOf<Modal?>(null) }
     var dropColor by remember { mutableStateOf<Color?>(null) }
@@ -98,9 +99,9 @@ fun PersonScreen(
     val shownBalance = rememberCountedBalance(summary.balanceMinor, riseDelayMs, reducedMotion)
     val name = summary.person.name
 
-    BoxWithConstraints(Modifier.fillMaxSize().background(Tide.Ground)) {
+    BoxWithConstraints(modifier.fillMaxSize().background(Tide.Ground)) {
         val screenHeight = maxHeight
-        PersonLiquid(summary.balanceMinor, riseDelayMs)
+        PersonLiquid(summary.balanceMinor, riseDelayMs, summary.jarLevel)
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp),
@@ -211,7 +212,7 @@ private fun rememberCountedBalance(target: Long, delayMs: Int, reducedMotion: Bo
 }
 
 @Composable
-private fun PersonLiquid(balanceMinor: Long, levelDelayMs: Int) {
+private fun PersonLiquid(balanceMinor: Long, levelDelayMs: Int, initialLevel: Float) {
     Liquid(
         level = personLevel(balanceMinor),
         color = liquidColor(balanceMinor),
@@ -219,6 +220,7 @@ private fun PersonLiquid(balanceMinor: Long, levelDelayMs: Int) {
         waveHeight = 16.dp,
         showBackWave = true,
         levelDelayMs = levelDelayMs,
+        initialLevel = initialLevel,
     )
 }
 

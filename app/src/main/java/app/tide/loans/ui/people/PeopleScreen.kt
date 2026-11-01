@@ -70,6 +70,7 @@ fun PeopleScreen(
     onAddPerson: (String) -> Unit,
     onSearch: () -> Unit,
     onSettings: () -> Unit,
+    fillFromEmpty: Boolean = true,
     jarModifier: @Composable (Long) -> Modifier = { Modifier },
 ) {
     var adding by remember { mutableStateOf(false) }
@@ -96,7 +97,7 @@ fun PeopleScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             itemsIndexed(state.summaries, key = { _, it -> it.person.id }) { index, summary ->
-                Jar(summary, index, jarModifier(summary.person.id)) { onOpenPerson(summary.person.id) }
+                Jar(summary, index, fillFromEmpty, jarModifier(summary.person.id)) { onOpenPerson(summary.person.id) }
             }
             item(key = "add") { AddPersonTile { adding = true } }
         }
@@ -129,7 +130,7 @@ private fun TotalColumn(label: String, text: String, color: Color, modifier: Mod
 }
 
 @Composable
-private fun Jar(summary: PersonSummary, index: Int, modifier: Modifier, onClick: () -> Unit) {
+private fun Jar(summary: PersonSummary, index: Int, fillFromEmpty: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val amount = formatAmount(summary.balanceMinor)
     val tag = when {
         summary.balanceMinor > 0 -> "owes you"
@@ -149,7 +150,8 @@ private fun Jar(summary: PersonSummary, index: Int, modifier: Modifier, onClick:
             color = liquidColor(summary.balanceMinor),
             modifier = Modifier.fillMaxSize(),
             waveHeight = 12.dp,
-            levelDelayMs = index * 90,
+            levelDelayMs = if (fillFromEmpty) index * 90 else 0,
+            initialLevel = if (fillFromEmpty) 0f else summary.jarLevel,
         )
         Column(
             Modifier.padding(start = 16.dp, end = 12.dp, top = 16.dp),

@@ -28,7 +28,7 @@ import kotlinx.coroutines.delay
 private const val TWO_PI = (2 * PI).toFloat()
 private const val STEP_PX = 8f
 
-/** Animated water filling [level] of its bounds, from 0 to 1. Starts empty and rises with a wobble. */
+/** Animated water filling [level] of its bounds, from 0 to 1. Rises from [initialLevel] with a wobble. */
 @Composable
 fun Liquid(
     level: Float,
@@ -37,9 +37,10 @@ fun Liquid(
     waveHeight: Dp = 14.dp,
     showBackWave: Boolean = false,
     levelDelayMs: Int = 0,
+    initialLevel: Float = 0f,
 ) {
     val reducedMotion = rememberReducedMotion()
-    val shown = remember { Animatable(if (reducedMotion) level else 0f) }
+    val shown = remember { Animatable(if (reducedMotion) level else initialLevel) }
     LaunchedEffect(level) {
         if (reducedMotion) {
             shown.snapTo(level)
