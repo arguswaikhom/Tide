@@ -1,9 +1,12 @@
 package app.tide.loans.ui.person
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -22,13 +26,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -44,10 +52,13 @@ import app.tide.loans.domain.amountSp
 import app.tide.loans.domain.formatAmount
 import app.tide.loans.domain.formatWhen
 import app.tide.loans.domain.historyOrder
+import app.tide.loans.domain.interpolateMinor
 import app.tide.loans.domain.personLevel
 import app.tide.loans.ui.PillButton
+import app.tide.loans.ui.liquid.Drop
 import app.tide.loans.ui.liquid.Liquid
 import app.tide.loans.ui.people.liquidColor
+import app.tide.loans.ui.rememberReducedMotion
 import app.tide.loans.ui.sheets.ConfirmDialog
 import app.tide.loans.ui.sheets.EntrySheet
 import app.tide.loans.ui.sheets.PersonSheet
@@ -55,6 +66,11 @@ import app.tide.loans.ui.theme.Figtree
 import app.tide.loans.ui.theme.Tide
 import app.tide.loans.ui.theme.Unbounded
 import java.time.ZoneId
+import kotlinx.coroutines.delay
+
+private const val RISE_DELAY_MS = 420
+private const val COUNT_MS = 900
+private const val ROW_IN_MS = 500
 
 private sealed interface Modal {
     data object AddEntry : Modal
@@ -76,10 +92,15 @@ fun PersonScreen(
     onDeletePerson: () -> Unit,
 ) {
     var modal by remember { mutableStateOf<Modal?>(null) }
+    var dropColor by remember { mutableStateOf<Color?>(null) }
+    val reducedMotion = rememberReducedMotion()
+    val riseDelayMs = if (dropColor != null) RISE_DELAY_MS else 0
+    val shownBalance = rememberCountedBalance(summary.balanceMinor, riseDelayMs, reducedMotion)
     val name = summary.person.name
 
-    Box(Modifier.fillMaxSize().background(Tide.Ground)) {
-        PersonLiquid(summary.balanceMinor)
+    BoxWithConstraints(Modifier.fillMaxSize().background(Tide.Ground)) {
+        val screenHeight = maxHeight
+        PersonLiquid(summary.balanceMinor, riseDelayMs)
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp),
@@ -102,12 +123,19 @@ fun PersonScreen(
                     Icon(Icons.Default.Edit, "Edit $name", tint = Tide.Text)
                 }
             }
-            Balance(summary)
-            History(entries, summary.currency, Modifier.weight(1f)) { modal = Modal.EditEntry(it) }
+            Balance(summary, shownBalance)
+            History(entries, summary.currency, reducedMotion, Modifier.weight(1f)) { modal = Modal.EditEntry(it) }
             PillButton(
                 "Add entry",
                 Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
             ) { modal = Modal.AddEntry }
+        }
+        dropColor?.let { color ->
+            Drop(
+                color = color,
+                targetY = screenHeight * (1 - personLevel(summary.balanceMinor)),
+                onFinished = { dropColor = null },
+            )
         }
     }
 
@@ -118,6 +146,7 @@ fun PersonScreen(
             onSave = { direction, amount, note, at ->
                 onSaveEntry(null, direction, amount, note, at)
                 modal = null
+                if (!reducedMotion) dropColor = if (direction == Direction.GAVE) Tide.Blue else Tide.Orange
             },
             onDelete = null,
             onDismiss = { modal = null },
@@ -163,22 +192,41 @@ fun PersonScreen(
     }
 }
 
+/** Counts from the balance on screen to [target] whenever it changes. Opening the screen shows it directly. */
 @Composable
-private fun PersonLiquid(balanceMinor: Long) {
+private fun rememberCountedBalance(target: Long, delayMs: Int, reducedMotion: Boolean): Long {
+    var shown by remember { mutableLongStateOf(target) }
+    LaunchedEffect(target) {
+        if (reducedMotion) {
+            shown = target
+            return@LaunchedEffect
+        }
+        delay(delayMs.toLong())
+        val from = shown
+        Animatable(0f).animateTo(1f, tween(COUNT_MS, easing = CubicBezierEasing(0.33f, 1f, 0.68f, 1f))) {
+            shown = interpolateMinor(from, target, value)
+        }
+    }
+    return shown
+}
+
+@Composable
+private fun PersonLiquid(balanceMinor: Long, levelDelayMs: Int) {
     Liquid(
         level = personLevel(balanceMinor),
         color = liquidColor(balanceMinor),
         modifier = Modifier.fillMaxSize(),
         waveHeight = 16.dp,
         showBackWave = true,
+        levelDelayMs = levelDelayMs,
     )
 }
 
 @Composable
-private fun Balance(summary: PersonSummary) {
+private fun Balance(summary: PersonSummary, shownMinor: Long) {
     val name = summary.person.name
     val balance = summary.balanceMinor
-    val amount = formatAmount(balance)
+    val amount = formatAmount(shownMinor)
     Column(
         Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -213,25 +261,58 @@ private fun Balance(summary: PersonSummary) {
 }
 
 @Composable
-private fun History(entries: List<Entry>, currency: String, modifier: Modifier, onTap: (Entry) -> Unit) {
+private fun History(
+    entries: List<Entry>,
+    currency: String,
+    reducedMotion: Boolean,
+    modifier: Modifier,
+    onTap: (Entry) -> Unit,
+) {
     val now = System.currentTimeMillis()
     val zone = ZoneId.systemDefault()
+    val ordered = historyOrder(entries)
+    val list = rememberLazyListState()
+    val seen = remember { entries.mapTo(mutableSetOf()) { it.id } }
+    LaunchedEffect(ordered.map { it.id }) {
+        val added = ordered.indexOfFirst { it.id !in seen }
+        seen += ordered.map { it.id }
+        if (added >= 0) list.animateScrollToItem(added)
+    }
     LazyColumn(
         modifier.fillMaxWidth(),
+        state = list,
         contentPadding = PaddingValues(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(historyOrder(entries), key = { it.id }) { entry ->
-            EntryCard(entry, currency, formatWhen(entry.occurredAt, now, zone)) { onTap(entry) }
+        items(ordered, key = { it.id }) { entry ->
+            val isNew = remember(entry.id) { entry.id !in seen }
+            val entering = remember { Animatable(if (isNew && !reducedMotion) 0f else 1f) }
+            LaunchedEffect(Unit) { entering.animateTo(1f, tween(ROW_IN_MS)) }
+            EntryCard(
+                entry,
+                currency,
+                formatWhen(entry.occurredAt, now, zone),
+                modifier = Modifier.animateItem(fadeInSpec = null).graphicsLayer {
+                    alpha = entering.value
+                    translationY = (1 - entering.value) * 16.dp.toPx()
+                },
+            ) { onTap(entry) }
         }
     }
 }
 
 @Composable
-fun EntryCard(entry: Entry, currency: String, whenText: String, personName: String? = null, onClick: () -> Unit) {
+fun EntryCard(
+    entry: Entry,
+    currency: String,
+    whenText: String,
+    personName: String? = null,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
     val gave = entry.direction == Direction.GAVE
     Row(
-        Modifier
+        modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
             .background(Tide.Panel)

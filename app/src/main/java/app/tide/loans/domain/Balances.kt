@@ -6,6 +6,7 @@ import app.tide.loans.data.Person
 import kotlin.math.abs
 import kotlin.math.log10
 import kotlin.math.max
+import kotlin.math.roundToLong
 
 data class PersonSummary(
     val person: Person,
@@ -65,6 +66,10 @@ fun totals(summaries: List<PersonSummary>): Totals {
 
 fun historyOrder(entries: List<Entry>): List<Entry> =
     entries.sortedWith(compareByDescending<Entry> { it.occurredAt }.thenByDescending { it.id })
+
+/** The balance to show part way through a count, kept in Long so large amounts stay exact. */
+fun interpolateMinor(from: Long, to: Long, progress: Float): Long =
+    if (progress >= 1f) to else from + ((to - from) * progress.toDouble()).roundToLong()
 
 /** Font size that keeps [text] on one line: [baseSp] up to [fitChars] characters, then shrinking. */
 fun amountSp(text: String, baseSp: Int, minSp: Int, fitChars: Int): Int =

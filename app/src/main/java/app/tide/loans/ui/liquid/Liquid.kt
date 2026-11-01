@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.tide.loans.ui.rememberReducedMotion
 import kotlin.math.PI
 import kotlin.math.sin
 import kotlinx.coroutines.delay
@@ -37,10 +38,15 @@ fun Liquid(
     showBackWave: Boolean = false,
     levelDelayMs: Int = 0,
 ) {
-    val shown = remember { Animatable(0f) }
+    val reducedMotion = rememberReducedMotion()
+    val shown = remember { Animatable(if (reducedMotion) level else 0f) }
     LaunchedEffect(level) {
-        delay(levelDelayMs.toLong())
-        shown.animateTo(level, spring(dampingRatio = 0.45f, stiffness = 60f))
+        if (reducedMotion) {
+            shown.snapTo(level)
+        } else {
+            delay(levelDelayMs.toLong())
+            shown.animateTo(level, spring(dampingRatio = 0.45f, stiffness = 60f))
+        }
     }
     val tint by animateColorAsState(color, tween(600, levelDelayMs), label = "liquid colour")
     val waves = rememberInfiniteTransition(label = "waves")

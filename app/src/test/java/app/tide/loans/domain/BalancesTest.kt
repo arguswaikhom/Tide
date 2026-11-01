@@ -124,4 +124,12 @@ class BalancesTest {
         assertEquals(26, amountSp("12,345,678,901", 52, 24, 7))
         assertEquals(24, amountSp("1,000,000,000,000", 52, 24, 7))
     }
+
+    @Test fun interpolatesMinorUnitsWithoutLosingPrecision() {
+        assertEquals(100L, interpolateMinor(100, 200, 0f))
+        assertEquals(150L, interpolateMinor(100, 200, 0.5f))
+        assertEquals(200L, interpolateMinor(100, 200, 1f))
+        assertEquals(-50L, interpolateMinor(50, -150, 0.5f))
+        assertEquals(99_999_999_999_999L, interpolateMinor(5, 99_999_999_999_999L, 1f))
+    }
 }
