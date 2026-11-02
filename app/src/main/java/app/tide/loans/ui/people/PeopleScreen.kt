@@ -31,7 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,19 +51,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.tide.loans.AppState
 import app.tide.loans.domain.PersonSummary
-import app.tide.loans.domain.amountSp
 import app.tide.loans.domain.formatAmount
 import app.tide.loans.domain.formatTotals
 import app.tide.loans.ui.FitText
+import app.tide.loans.ui.amountSp
 import app.tide.loans.ui.liquid.Liquid
+import app.tide.loans.ui.liquid.liquidColor
 import app.tide.loans.ui.sheets.PersonSheet
 import app.tide.loans.ui.theme.Figtree
 import app.tide.loans.ui.theme.Tide
 import app.tide.loans.ui.theme.Unbounded
 
 private val JarShape = RoundedCornerShape(28.dp)
-
-fun liquidColor(balanceMinor: Long) = if (balanceMinor >= 0) Tide.Blue else Tide.Orange
 
 @Composable
 fun PeopleScreen(
@@ -75,7 +74,7 @@ fun PeopleScreen(
     fillFromEmpty: Boolean = true,
     jarModifier: @Composable (Long) -> Modifier = { Modifier },
 ) {
-    var adding by remember { mutableStateOf(false) }
+    var adding by rememberSaveable { mutableStateOf(false) }
     val grid = rememberLazyGridState()
     Column(Modifier.fillMaxSize().background(Tide.Ground).statusBarsPadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.End) {

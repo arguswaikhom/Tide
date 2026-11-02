@@ -119,17 +119,12 @@ class BalancesTest {
         assertEquals(listOf(3L, 2L, 1L), historyOrder(entries).map { it.id })
     }
 
-    @Test fun amountShrinksToFit() {
-        assertEquals(52, amountSp("1,500", 52, 24, 7))
-        assertEquals(26, amountSp("12,345,678,901", 52, 24, 7))
-        assertEquals(24, amountSp("1,000,000,000,000", 52, 24, 7))
-    }
-
     @Test fun interpolatesMinorUnitsWithoutLosingPrecision() {
         assertEquals(100L, interpolateMinor(100, 200, 0f))
         assertEquals(150L, interpolateMinor(100, 200, 0.5f))
         assertEquals(200L, interpolateMinor(100, 200, 1f))
         assertEquals(-50L, interpolateMinor(50, -150, 0.5f))
+        assertEquals(49_999_999_999_999L, interpolateMinor(0, 99_999_999_999_998L, 0.5f))
         assertEquals(99_999_999_999_999L, interpolateMinor(5, 99_999_999_999_999L, 1f))
     }
 
@@ -139,12 +134,5 @@ class BalancesTest {
         val summaries = summarize(people, entries, "INR")
         assertEquals(listOf(2L, 1L), summaries.map { it.person.id })
         assertEquals(50L, summaries.first().lastActivity)
-    }
-
-    @Test fun fitPicksTheLargestSizeThatFits() {
-        val tenPerSp = { sp: Int -> sp * 10 }
-        assertEquals(20, fitSp(baseSp = 20, minSp = 10, maxWidth = 300, widthAt = tenPerSp))
-        assertEquals(15, fitSp(baseSp = 20, minSp = 10, maxWidth = 150, widthAt = tenPerSp))
-        assertEquals(10, fitSp(baseSp = 20, minSp = 10, maxWidth = 50, widthAt = tenPerSp))
     }
 }

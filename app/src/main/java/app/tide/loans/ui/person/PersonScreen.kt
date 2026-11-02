@@ -27,10 +27,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,9 +61,9 @@ import app.tide.loans.ui.FitText
 import app.tide.loans.ui.PillButton
 import app.tide.loans.ui.liquid.Drop
 import app.tide.loans.ui.liquid.Liquid
-import app.tide.loans.ui.people.liquidColor
+import app.tide.loans.ui.liquid.liquidColor
+import app.tide.loans.ui.liquid.settledLiquidColor
 import app.tide.loans.ui.rememberReducedMotion
-import app.tide.loans.ui.sheets.ConfirmDialog
 import app.tide.loans.ui.sheets.EntrySheet
 import app.tide.loans.ui.sheets.PersonSheet
 import app.tide.loans.ui.theme.Figtree
@@ -73,13 +76,28 @@ private const val RISE_DELAY_MS = 420
 private const val COUNT_MS = 900
 private const val ROW_IN_MS = 500
 
-private sealed interface Modal {
+internal sealed interface Modal {
     data object AddEntry : Modal
-    data class EditEntry(val entry: Entry) : Modal
-    data class ConfirmDeleteEntry(val entry: Entry) : Modal
+    data class EditEntry(val entryId: Long) : Modal
     data object EditPerson : Modal
-    data object ConfirmDeletePerson : Modal
 }
+
+internal fun modalToKey(modal: Modal?): String = when (modal) {
+    null -> ""
+    Modal.AddEntry -> "add"
+    Modal.EditPerson -> "person"
+    is Modal.EditEntry -> "entry:${modal.entryId}"
+}
+
+internal fun modalFromKey(key: String): Modal? = when {
+    key == "add" -> Modal.AddEntry
+    key == "person" -> Modal.EditPerson
+    key.startsWith("entry:") -> Modal.EditEntry(key.removePrefix("entry:").toLong())
+    else -> null
+}
+
+/** Keeps a half-typed entry open if Android removes the app from memory. */
+private val ModalSaver: Saver<Modal?, String> = Saver(save = { modalToKey(it) }, restore = { modalFromKey(it) })
 
 @Composable
 fun PersonScreen(
@@ -93,7 +111,7 @@ fun PersonScreen(
     onDeletePerson: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var modal by remember { mutableStateOf<Modal?>(null) }
+    var modal by rememberSaveable(stateSaver = ModalSaver) { mutableStateOf<Modal?>(null) }
     var dropColor by remember { mutableStateOf<Color?>(null) }
     val reducedMotion = rememberReducedMotion()
     val riseDelayMs = if (dropColor != null) RISE_DELAY_MS else 0
@@ -126,7 +144,7 @@ fun PersonScreen(
                 }
             }
             Balance(summary, shownBalance)
-            History(entries, summary.currency, reducedMotion, Modifier.weight(1f)) { modal = Modal.EditEntry(it) }
+            History(entries, summary.currency, reducedMotion, Modifier.weight(1f)) { modal = Modal.EditEntry(it.id) }
             PillButton(
                 "Add entry",
                 Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
@@ -153,25 +171,21 @@ fun PersonScreen(
             onDelete = null,
             onDismiss = { modal = null },
         )
-        is Modal.EditEntry -> EntrySheet(
-            existing = current.entry,
-            onSave = { direction, amount, note, at ->
-                onSaveEntry(current.entry.id, direction, amount, note, at)
-                modal = null
-            },
-            onDelete = { modal = Modal.ConfirmDeleteEntry(current.entry) },
-            onDismiss = { modal = null },
-        )
-        is Modal.ConfirmDeleteEntry -> ConfirmDialog(
-            title = "Delete this entry?",
-            body = "It will be removed from $name's history and the balance will change.",
-            confirmLabel = "Delete",
-            onConfirm = {
-                onDeleteEntry(current.entry.id)
-                modal = null
-            },
-            onDismiss = { modal = null },
-        )
+        is Modal.EditEntry -> entries.find { it.id == current.entryId }?.let { entry ->
+            EntrySheet(
+                existing = entry,
+                onSave = { direction, amount, note, at ->
+                    onSaveEntry(entry.id, direction, amount, note, at)
+                    modal = null
+                },
+                onDelete = {
+                    onDeleteEntry(entry.id)
+                    modal = null
+                },
+                onDismiss = { modal = null },
+                personName = name,
+            )
+        }
         Modal.EditPerson -> PersonSheet(
             initialName = name,
             onSave = { newName, currency ->
@@ -179,19 +193,12 @@ fun PersonScreen(
                 modal = null
             },
             onDismiss = { modal = null },
-            onDelete = { modal = Modal.ConfirmDeletePerson },
-            initialCurrency = summary.person.currencyOverride,
-            defaultCurrency = defaultCurrency,
-        )
-        Modal.ConfirmDeletePerson -> ConfirmDialog(
-            title = "Delete $name?",
-            body = "This erases $name and their whole history. You can't undo this.",
-            confirmLabel = "Delete",
-            onConfirm = {
+            onDelete = {
                 modal = null
                 onDeletePerson()
             },
-            onDismiss = { modal = null },
+            initialCurrency = summary.person.currencyOverride,
+            defaultCurrency = defaultCurrency,
         )
     }
 }
@@ -216,9 +223,12 @@ private fun rememberCountedBalance(target: Long, delayMs: Int, reducedMotion: Bo
 
 @Composable
 private fun PersonLiquid(balanceMinor: Long, levelDelayMs: Int, initialLevel: Float) {
+    val lastColor = remember { mutableStateOf(liquidColor(balanceMinor)) }
+    val color = settledLiquidColor(balanceMinor, lastColor.value)
+    SideEffect { lastColor.value = color }
     Liquid(
         level = personLevel(balanceMinor),
-        color = liquidColor(balanceMinor),
+        color = color,
         modifier = Modifier.fillMaxSize(),
         waveHeight = 16.dp,
         showBackWave = true,
@@ -230,7 +240,7 @@ private fun PersonLiquid(balanceMinor: Long, levelDelayMs: Int, initialLevel: Fl
 @Composable
 private fun Balance(summary: PersonSummary, shownMinor: Long) {
     val name = summary.person.name
-    val balance = summary.balanceMinor
+    val balance = shownMinor
     val amount = formatAmount(shownMinor)
     Column(
         Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 20.dp),
@@ -252,18 +262,18 @@ private fun Balance(summary: PersonSummary, shownMinor: Long) {
             baseSp = 52,
             minSp = 20,
         )
-        Text(
-            when {
-                balance > 0 -> "$name owes you"
-                balance < 0 -> "You owe $name"
-                else -> "All square"
-            },
-            color = Tide.Muted,
-            fontSize = 15.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        Row {
+            if (balance < 0) StandingText("You owe ")
+            if (balance == 0L) StandingText("All square")
+            else StandingText(name, Modifier.weight(1f, fill = false))
+            if (balance > 0) StandingText(" owes you")
+        }
     }
+}
+
+@Composable
+private fun StandingText(text: String, modifier: Modifier = Modifier) {
+    Text(text, modifier, color = Tide.Muted, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
 }
 
 @Composable

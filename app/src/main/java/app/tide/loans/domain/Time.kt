@@ -3,7 +3,6 @@ package app.tide.loans.domain
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Currency
 import java.util.Locale
 
 private val TIME = DateTimeFormatter.ofPattern("h:mm a", Locale.US)
@@ -23,6 +22,3 @@ fun formatWhen(ms: Long, now: Long, zone: ZoneId): String {
         else -> DAY_AND_YEAR.format(time)
     }
 }
-
-fun defaultCurrencyFor(locale: Locale): String =
-    runCatching { Currency.getInstance(locale)?.currencyCode }.getOrNull() ?: "USD"

@@ -4,7 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.LocalDateTime
 import java.time.ZoneOffset
-import java.util.Locale
 
 class TimeTest {
     private fun ms(text: String) = LocalDateTime.parse(text).toInstant(ZoneOffset.UTC).toEpochMilli()
@@ -31,12 +30,5 @@ class TimeTest {
 
     @Test fun formatsAnotherYear() {
         assertEquals("Oct 28, 2025, 9:41 AM", formatWhen(ms("2025-10-28T09:41:00"), now, ZoneOffset.UTC))
-    }
-
-    @Test fun picksCurrencyFromRegionWithFallback() {
-        assertEquals("USD", defaultCurrencyFor(Locale.US))
-        assertEquals("INR", defaultCurrencyFor(Locale("en", "IN")))
-        assertEquals("USD", defaultCurrencyFor(Locale("en")))
-        assertEquals("USD", defaultCurrencyFor(Locale("en", "AQ")))
     }
 }

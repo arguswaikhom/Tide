@@ -3,6 +3,7 @@ package app.tide.loans.domain
 import java.util.Currency
 import java.util.Locale
 import kotlin.math.abs
+import kotlin.math.roundToLong
 
 /** 1 trillion, in minor units. Keeps sums far from overflowing a Long. */
 const val MAX_AMOUNT_MINOR = 100_000_000_000_000L
@@ -33,6 +34,13 @@ fun formatTotals(byCurrency: Map<String, Long>): String =
     else byCurrency.toSortedMap().entries.joinToString(" · ") { "${formatAmount(it.value)} ${it.key}" }
 
 fun normalizeNote(text: String): String? = text.trim().ifEmpty { null }
+
+/** The balance to show part way through a count, kept in Long so large amounts stay exact. */
+fun interpolateMinor(from: Long, to: Long, progress: Float): Long =
+    if (progress >= 1f) to else from + ((to - from) * progress.toDouble()).roundToLong()
+
+fun defaultCurrencyFor(locale: Locale): String =
+    runCatching { Currency.getInstance(locale)?.currencyCode }.getOrNull() ?: "USD"
 
 data class CurrencyOption(val code: String, val name: String)
 

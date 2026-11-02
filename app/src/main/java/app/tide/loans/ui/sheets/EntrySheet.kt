@@ -57,6 +57,7 @@ fun EntrySheet(
     onSave: (Direction, Long, String?, Long) -> Unit,
     onDelete: (() -> Unit)?,
     onDismiss: () -> Unit,
+    personName: String = "",
 ) {
     var direction by rememberSaveable { mutableStateOf(existing?.direction ?: Direction.GAVE) }
     var amount by rememberSaveable {
@@ -65,6 +66,7 @@ fun EntrySheet(
     var note by rememberSaveable { mutableStateOf(existing?.note ?: "") }
     var picked by rememberSaveable { mutableStateOf<Long?>(null) }
     var pickingTime by rememberSaveable { mutableStateOf(false) }
+    var confirmingDelete by rememberSaveable { mutableStateOf(false) }
     val parsed = parseAmount(amount)
     val amountFocus = remember { FocusRequester() }
 
@@ -122,12 +124,25 @@ fun EntrySheet(
                 }
             }
             if (onDelete != null) {
-                TextButton(onDelete, Modifier.fillMaxWidth()) {
+                TextButton({ confirmingDelete = true }, Modifier.fillMaxWidth()) {
                     Text("Delete entry", color = Tide.Orange, fontWeight = FontWeight.Bold)
                 }
             }
             if (existing == null) LaunchedEffect(Unit) { amountFocus.requestFocus() }
         }
+    }
+
+    if (confirmingDelete && onDelete != null) {
+        ConfirmDialog(
+            title = "Delete this entry?",
+            body = "It will be removed from $personName's history and the balance will change.",
+            confirmLabel = "Delete",
+            onConfirm = {
+                confirmingDelete = false
+                onDelete()
+            },
+            onDismiss = { confirmingDelete = false },
+        )
     }
 
     if (pickingTime) {

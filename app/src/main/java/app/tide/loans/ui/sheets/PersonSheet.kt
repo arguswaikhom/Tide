@@ -47,6 +47,7 @@ fun PersonSheet(
     var name by rememberSaveable { mutableStateOf(initialName) }
     var currency by rememberSaveable { mutableStateOf(initialCurrency) }
     var pickingCurrency by rememberSaveable { mutableStateOf(false) }
+    var confirmingDelete by rememberSaveable { mutableStateOf(false) }
     val focus = remember { FocusRequester() }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -82,12 +83,24 @@ fun PersonSheet(
             }
             PillButton("Save", enabled = name.isNotBlank()) { onSave(name, currency) }
             if (onDelete != null) {
-                TextButton(onDelete, Modifier.fillMaxWidth()) {
+                TextButton({ confirmingDelete = true }, Modifier.fillMaxWidth()) {
                     Text("Delete person", color = Tide.Orange, fontWeight = FontWeight.Bold)
                 }
             }
-            LaunchedEffect(Unit) { focus.requestFocus() }
+            if (initialName.isEmpty()) LaunchedEffect(Unit) { focus.requestFocus() }
         }
+    }
+    if (confirmingDelete && onDelete != null) {
+        ConfirmDialog(
+            title = "Delete $initialName?",
+            body = "This erases $initialName and their whole history. You can't undo this.",
+            confirmLabel = "Delete",
+            onConfirm = {
+                confirmingDelete = false
+                onDelete()
+            },
+            onDismiss = { confirmingDelete = false },
+        )
     }
     if (pickingCurrency && defaultCurrency != null) {
         CurrencyPicker(

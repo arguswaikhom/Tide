@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.Locale
 
 class MoneyTest {
     @Test fun parsesWholeAndDecimalAmounts() {
@@ -45,5 +46,12 @@ class MoneyTest {
         assertEquals("USD", currencyOptions("usd").first().code)
         assertTrue(currencyOptions("rupee").any { it.code == "INR" })
         assertTrue(currencyOptions("zzzz").isEmpty())
+    }
+
+    @Test fun picksCurrencyFromRegionWithFallback() {
+        assertEquals("USD", defaultCurrencyFor(Locale.US))
+        assertEquals("INR", defaultCurrencyFor(Locale("en", "IN")))
+        assertEquals("USD", defaultCurrencyFor(Locale("en")))
+        assertEquals("USD", defaultCurrencyFor(Locale("en", "AQ")))
     }
 }

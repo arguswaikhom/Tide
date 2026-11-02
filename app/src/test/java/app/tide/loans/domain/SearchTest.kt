@@ -55,4 +55,9 @@ class SearchTest {
         val out = listOf(entry(1, 100, "cab", at = 5), entry(2, 100, "cab", at = 9))
         assertEquals(listOf(2L, 1L), search("cab", people, out, "INR").map { it.entry.id })
     }
+
+    @Test fun commaDecimalMeansTheSameAsWhenEntering() {
+        val out = listOf(entry(1, 1250), entry(2, 125000))
+        assertEquals(listOf(1L), search("12,50", people, out, "INR").map { it.entry.id })
+    }
 }

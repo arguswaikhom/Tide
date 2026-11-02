@@ -21,12 +21,19 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.tide.loans.ui.rememberReducedMotion
+import app.tide.loans.ui.theme.Tide
 import kotlin.math.PI
 import kotlin.math.sin
 import kotlinx.coroutines.delay
 
 private const val TWO_PI = (2 * PI).toFloat()
 private const val STEP_PX = 8f
+
+fun liquidColor(balanceMinor: Long) = if (balanceMinor >= 0) Tide.Blue else Tide.Orange
+
+/** At zero the liquid has drained away, so it keeps its colour rather than turning blue on the way out. */
+fun settledLiquidColor(balanceMinor: Long, previous: Color) =
+    if (balanceMinor == 0L) previous else liquidColor(balanceMinor)
 
 /** Animated water filling [level] of its bounds, from 0 to 1. Rises from [initialLevel] with a wobble. */
 @Composable

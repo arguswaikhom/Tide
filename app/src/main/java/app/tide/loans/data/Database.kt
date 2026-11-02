@@ -41,7 +41,7 @@ interface LoanDao {
     suspend fun save(settings: Settings)
 }
 
-@Database(entities = [Person::class, Entry::class, Settings::class], version = 1, exportSchema = false)
+@Database(entities = [Person::class, Entry::class, Settings::class], version = 1, exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun dao(): LoanDao
 
